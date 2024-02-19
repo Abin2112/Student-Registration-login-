@@ -1,0 +1,334 @@
+from tkinter import *
+from datetime import date
+from tkinter import filedialog
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import os
+from tkinter.ttk import Combobox
+import sqlite3
+from tkcalendar import Calendar
+
+
+background = "#06283D"
+framebg = "#F0F0F0"
+framefg = "#06283D"
+
+# Create database connection
+conn = sqlite3.connect('student.db')
+c = conn.cursor()
+
+# Create table if it doesn't exist
+c.execute('''CREATE TABLE IF NOT EXISTS students (
+             registration_no INTEGER PRIMARY KEY,
+             name TEXT,
+             class TEXT,
+             gender TEXT,
+             dob TEXT,
+             date_of_registration TEXT,
+             religion TEXT,
+             skill TEXT,
+             father_name TEXT,
+             mother_name TEXT,
+             father_occupation TEXT,
+             mother_occupation TEXT
+             )''')
+conn.commit()
+
+root = Tk()
+root.title("Student Registration System")
+root.geometry("1250x700+210+100")
+root.config(bg=background)
+
+# Initialize variables
+filename = None
+img = None
+
+# Exit function
+def Exit():
+    conn.close()
+    root.destroy()
+
+# Show Image function
+def showimage():
+    global filename, img
+    filename = filedialog.askopenfilename(initialdir=os.getcwd(),
+                                           title="Select Image file",
+                                           filetype=(("JPG File", "*.jpg"),
+                                                     ("PNG File", "*.png"),
+                                                     ("All files", "*.txt")))
+    img = Image.open(filename)
+    resized_image = img.resize((190, 190))
+    photo2 = ImageTk.PhotoImage(resized_image)
+    lbl.config(image=photo2)
+    lbl.image = photo2
+
+# Registration Number function
+def registration_no():
+    c.execute("SELECT MAX(registration_no) FROM students")
+    max_row_value = c.fetchone()[0]
+    if max_row_value:
+        Registration.set(max_row_value + 1)
+    else:
+        Registration.set(1)
+
+# Clear function
+def clear():
+    global img
+    Name.set('')
+    DOB.set('')
+    Religion.set('')
+    Skill.set('')
+    F_Name.set('')
+    M_Name.set('')
+    Father_Occupation.set('')
+    Mother_Occupation.set('')
+    Class.set("Select Class")
+    registration_no()
+    saveButton.config(state='normal')
+    img1 = PhotoImage(file="C:/Users/abin/OneDrive/Desktop/REimages/upload photo.png")
+    lbl.config(image=img1)
+    lbl.image = img1
+    img = ""
+
+# Save function
+def Save():
+    R1 = Registration.get()
+    N1 = Name.get()
+    C1 = Class.get()
+    G1 = gender.get()
+    D2 = DOB.get()
+    D1 = Date.get()
+    Re1 = Religion.get()
+    S1 = Skill.get()
+    fathername = F_Name.get()
+    mothername = M_Name.get()
+    F1 = Father_Occupation.get()
+    M1 = Mother_Occupation.get()
+
+    if N1 == "" or C1 == "Select Class" or D2 == "" or Re1 == "" or S1 == "" or fathername == "" or mothername == "" or F1 == "" or M1 == "":
+        messagebox.showinfo("error", "Few Data is missing!")
+    else:
+        c.execute("INSERT INTO students VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                  (R1, N1, C1, G1, D2, D1, Re1, S1, fathername, mothername, F1, M1))
+        conn.commit()
+        if img:
+            img.save("images/" + str(R1) + ".jpg")
+        messagebox.showinfo("info", "successfully data entered!!!")
+        clear()
+
+# Search function
+def search():
+    text = Search.get()
+    clear()
+    saveButton.config(state='disable')
+
+    c.execute("SELECT * FROM students WHERE registration_no=?", (text,))
+    row = c.fetchone()
+    if row:
+        Registration.set(row[0])
+        Name.set(row[1])
+        Class.set(row[2])
+        gender.set(row[3])
+        DOB.set(row[4])
+        Date.set(row[5])
+        Religion.set(row[6])
+        Skill.set(row[7])
+        F_Name.set(row[8])
+        M_Name.set(row[9])
+        Father_Occupation.set(row[10])
+        Mother_Occupation.set(row[11])
+
+        img = Image.open("Student Images/" + str(row[0]) + ".jpg")
+        resized_image = img.resize((190, 190))
+        photo2 = ImageTk.PhotoImage(resized_image)
+        lbl.config(image=photo2)
+        lbl.image = photo2
+    else:
+        messagebox.showerror("Invalid", "Invalid registration number!!!")
+
+# Update function
+def Update():
+    R1 = Registration.get()
+    N1 = Name.get()
+    C1 = Class.get()
+    G1 = gender.get()
+    D2 = DOB.get()
+    D1 = Date.get()
+    Re1 = Religion.get()
+    S1 = Skill.get()
+    fathername = F_Name.get()
+    mothername = M_Name.get()
+    F1 = Father_Occupation.get()
+    M1 = Mother_Occupation.get()
+
+    c.execute('''UPDATE students SET name=?, class=?, gender=?, dob=?, date_of_registration=?, religion=?, 
+                 skill=?, father_name=?, mother_name=?, father_occupation=?, mother_occupation=? WHERE registration_no=?''',
+              (N1, C1, G1, D2, D1, Re1, S1, fathername, mothername, F1, M1, R1))
+    conn.commit()
+
+    if img:
+        img.save("Student Images/" + str(R1) + ".jpg")
+
+    messagebox.showinfo("Update", "Update Successfully!!!!!")
+    clear()
+
+#gender
+def selection():
+    global gender
+    value=radio.get()
+    if value==1:
+        gender="Male"
+        print(gender)
+    else:
+        gender="Female"
+        print(gender)
+
+    
+# Top frames
+Label(root, text="For any Query : pillaiabincs232414@gmail.com", width=10, height=3, bg="#f0687c",
+      anchor='e').pack(side=TOP, fill=X)
+Label(root, text="STUDENT REGISTRATION", width=10, height=2, bg="#c36464", fg='#fff', font='arial 20 bold').pack(
+    side=TOP, fill=X)
+
+# Search box to update
+Search = StringVar()
+Entry(root, textvariable=Search, width=15, bd=2, font="arial 20").place(x=820, y=70)
+imageicon3=PhotoImage(file="C:/Users/abin/OneDrive/Desktop/REimages/search.png")
+Srch = Button(root, image=imageicon3, compound=LEFT,width=123, bg='#68ddfa', font="arial 13 bold",command=search)
+Srch.place(x=1060, y=70)
+
+imageicon4=PhotoImage(file="C:/Users/abin/OneDrive/Desktop/REimages/Layer 4.png")
+Update_button = Button(root, image=imageicon4, bg="#c36464", command=Update)
+Update_button.place(x=110, y=64)
+
+# Registration and date
+Label(root, text="Registration No:", font="arial 13", fg="white", bg=background).place(x=30, y=150)
+Label(root, text="Date:", font="arial 13", fg="white", bg=background).place(x=500, y=150)
+
+Registration = IntVar()
+Date = StringVar()
+
+reg_entry = Entry(root, textvariable=Registration, width=15, font="arial 10")
+reg_entry.place(x=160, y=150)
+
+registration_no()
+
+today = date.today()
+d1 = today.strftime("%d/%m/%Y")
+date_entry = Entry(root, textvariable=Date, width=15, font="arial 10")
+date_entry.place(x=550, y=150)
+
+Date.set(d1)
+
+# Student details
+obj = LabelFrame(root, text="Student's Details", font=20, bd=2, width=900, fg=framefg, bg=framebg, height=250,
+                 relief=GROOVE)
+obj.place(x=30, y=200)
+
+Label(obj, text="Full Name:", font="arial 13", bg=framebg, fg=framefg).place(x=30, y=50)
+Label(obj, text="Date of Birth:", font="arial 13", bg=framebg, fg=framefg).place(x=30, y=100)
+Label(obj, text="Gender:", font="arial 13", bg=framebg, fg=framefg).place(x=30, y=150)
+
+Label(obj, text="Class:", font="arial 13", bg=framebg, fg=framefg).place(x=500, y=50)
+Label(obj, text="Religion :", font="arial 13", bg=framebg, fg=framefg).place(x=500, y=100)
+Label(obj, text="Skills :", font="arial 13", bg=framebg, fg=framefg).place(x=500, y=150)
+
+Name = StringVar()
+name_entry = Entry(obj, textvariable=Name, width=20, font="arial 10")
+name_entry.place(x=160, y=50)
+
+DOB = StringVar()
+
+
+def get_selected_date():
+    # Create and configure the Calendar dynamically
+    cal = Calendar(root, selectmode='day', year=2005, month=5, day=22,
+                   mindate=date(1999, 1, 1), maxdate=date(2007, 1, 1), yearspan=(17, 25),
+                   width=10, height=6)
+    cal.place(x=160, y=100)
+    
+    dob_entry = Entry(obj, textvariable=DOB, width=20, font="arial 10")
+    dob_entry.place(x=160, y=100)
+
+    # Place the Calendar next to the "Select Date" button
+    cal.place(x=160, y=50)
+    
+    # Callback to update the DOB variable when a date is selected
+    def update_dob():
+        DOB.set(cal.get_date())
+        cal.destroy()  # Destroy the Calendar after selecting a date
+    
+    # Add a button to confirm the selected date
+    Button(root, text="Confirm Date", command=update_dob).place(x=400, y=325)
+
+# Button to get selected date
+Button(obj, text="Select Date", command=get_selected_date).place(x=160, y=100)
+
+gender = StringVar()
+R1 = Radiobutton(obj, text="Male", variable=gender, value="Male", bg=framebg, fg=framefg)
+R1.place(x=150, y=150)
+
+R2 = Radiobutton(obj, text="Female", variable=gender, value="Female", bg=framebg, fg=framefg)
+R2.place(x=200, y=150)
+
+Religion = StringVar()
+religion_entry = Entry(obj, textvariable=Religion, width=20, font="arial 10")
+religion_entry.place(x=630, y=100)
+
+Skill = StringVar()
+Skill_entry = Entry(obj, textvariable=Skill, width=20, font="arial 10")
+Skill_entry.place(x=630, y=150)
+
+Class = Combobox(obj, values=['Fycs','Sycs','Tycs'], font="Roboto 10",
+                 width=17, state="r")
+Class.place(x=630, y=50)
+Class.set("Select Class")
+
+# Parents details
+obj2 = LabelFrame(root, text="Parent's Details", font=20, bd=2, width=900, fg="black", bg=framebg, height=220,
+                  relief=GROOVE)
+obj2.place(x=30, y=500)
+
+Label(obj2, text="Father's Name: ", font="arial 13", bg=framebg, fg=framefg).place(x=30, y=50)
+Label(obj2, text="Occupation : ", font="arial 13", bg=framebg, fg=framefg).place(x=30, y=100)
+
+F_Name = StringVar()
+f_entry = Entry(obj2, textvariable=F_Name, width=20, font="arial 10")
+f_entry.place(x=160, y=50)
+
+Father_Occupation = StringVar()
+FO_entry = Entry(obj2, textvariable=Father_Occupation, width=20, font="arial 10")
+FO_entry.place(x=160, y=100)
+
+Label(obj2, text="Mother's Name: ", font="arial 13", bg=framebg, fg=framefg).place(x=500, y=50)
+Label(obj2, text="Occupation : ", font="arial 13", bg=framebg, fg=framefg).place(x=500, y=100)
+
+M_Name = StringVar()
+M_entry = Entry(obj2, textvariable=M_Name, width=20, font="arial 10")
+M_entry.place(x=630, y=50)
+
+Mother_Occupation = StringVar()
+MO_entry = Entry(obj2, textvariable=Mother_Occupation, width=20, font="arial 10")
+MO_entry.place(x=630, y=100)
+
+# Image
+f = Frame(root, bd=3, bg="black", width=200, height=200, relief=GROOVE)
+f.place(x=1000, y=150)
+
+img = PhotoImage(file="C:/Users/abin/OneDrive/Desktop/REimages/upload photo.png")
+lbl = Label(f, bg="black", image=img)
+lbl.place(x=0, y=0)
+
+# Buttons
+Button(root, text="Upload", width=19, height=2, font="arial 12 bold", bg="lightblue", command=showimage).place(x=1000,
+                                                                                                               y=370)
+
+saveButton = Button(root, text="Save", width=19, height=2, font="arial 12 bold", bg="lightgreen", command=Save)
+saveButton.place(x=1000, y=450)
+
+Button(root, text="RESET", width=19, height=2, font="arial 12 bold", bg="lightpink", command=clear).place(x=1000,
+                                                                                                             y=530)
+
+Button(root, text="Exit", width=19, height=2, font="arial 12 bold", bg="red", command=Exit).place(x=1000, y=610)
+
+root.mainloop()
